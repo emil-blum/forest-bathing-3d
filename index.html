@@ -29,7 +29,6 @@
       --amber:         #c8922a;
       --amber-light:   #e8b96a;
       --cream:         #f0ead8;
-      --mist:          rgba(240, 234, 216, 0.88);
       --transition-speed: 1.4s;
     }
 
@@ -49,8 +48,7 @@
       display: block;
       transition:
         filter var(--transition-speed) ease,
-        transform var(--transition-speed) ease,
-        opacity var(--transition-speed) ease;
+        transform var(--transition-speed) ease;
     }
 
     #splat-canvas.blurred {
@@ -71,15 +69,11 @@
       transition: opacity 1.2s ease;
     }
 
-    #loader.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
+    #loader.fade-out { opacity: 0; pointer-events: none; }
 
     .loader-ring {
-      width: 48px;
-      height: 48px;
-      border: 1.5px solid rgba(200, 146, 42, 0.2);
+      width: 48px; height: 48px;
+      border: 1.5px solid rgba(200,146,42,0.2);
       border-top-color: var(--amber);
       border-radius: 50%;
       animation: spin 1.2s linear infinite;
@@ -92,7 +86,7 @@
       font-size: 11px;
       letter-spacing: 0.35em;
       text-transform: uppercase;
-      color: rgba(200, 146, 42, 0.6);
+      color: rgba(200,146,42,0.6);
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -110,18 +104,16 @@
       transition: opacity 0.8s ease;
     }
 
-    #hero.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
+    #hero.hidden { opacity: 0; pointer-events: none; }
 
+    /* Top + bottom vignette */
     #hero::before {
       content: '';
       position: absolute;
       inset: 0;
       background:
         radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.55) 0%, transparent 65%),
-        radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.7) 0%, transparent 60%);
+        radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.5) 0%, transparent 55%);
       pointer-events: none;
     }
 
@@ -157,17 +149,14 @@
       animation: rise 1.4s ease 0.6s forwards;
     }
 
-    h1 em {
-      font-style: italic;
-      color: var(--amber-light);
-    }
+    h1 em { font-style: italic; color: var(--amber-light); }
 
     .intro-text {
       font-family: 'Raleway', sans-serif;
       font-weight: 300;
       font-size: clamp(13px, 1.8vw, 16px);
       line-height: 1.85;
-      color: rgba(240, 234, 216, 0.82);
+      color: rgba(240,234,216,0.82);
       letter-spacing: 0.04em;
       max-width: 460px;
       margin: 0 auto 40px;
@@ -185,10 +174,10 @@
       letter-spacing: 0.4em;
       text-transform: uppercase;
       color: var(--cream);
-      border: 1px solid rgba(240, 234, 216, 0.4);
+      border: 1px solid rgba(240,234,216,0.4);
       padding: 16px 40px;
       cursor: pointer;
-      background: rgba(13, 31, 21, 0.35);
+      background: rgba(13,31,21,0.35);
       backdrop-filter: blur(4px);
       transition: all 0.4s ease;
       opacity: 0;
@@ -196,88 +185,111 @@
     }
 
     .cta-btn:hover {
-      background: rgba(200, 146, 42, 0.15);
+      background: rgba(200,146,42,0.15);
       border-color: var(--amber-light);
       color: var(--amber-light);
       letter-spacing: 0.5em;
     }
 
-    /* ── BOTTOM BAR (explore hint + hide toggle) ── */
+    /* ── BOTTOM BAR ── */
     #bottom-bar {
       position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 0;
+      left: 0;
+      right: 0;
       z-index: 20;
-      display: flex;
-      align-items: center;
-      gap: 28px;
       opacity: 0;
       animation: rise 1s ease 2.2s forwards;
-      white-space: nowrap;
     }
 
-    .explore-hint {
+    /* Dark gradient rising from the bottom edge */
+    #bottom-bar::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 0;
+      height: 100px;
+      background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+      pointer-events: none;
+    }
+
+    /* Divider line */
+    .bar-rule {
+      position: relative;
+      height: 1px;
+      background: linear-gradient(to right,
+        transparent 0%,
+        rgba(240,234,216,0.18) 15%,
+        rgba(240,234,216,0.18) 85%,
+        transparent 100%);
+      margin: 0 32px;
+    }
+
+    /* Three-column inner row */
+    .bar-inner {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
+      padding: 14px 32px 22px;
+    }
+
+    /* Shared label style */
+    .bar-label {
       font-family: 'Raleway', sans-serif;
       font-weight: 200;
       font-size: 10px;
-      letter-spacing: 0.4em;
+      letter-spacing: 0.38em;
       text-transform: uppercase;
-      color: rgba(240, 234, 216, 0.4);
-    }
-
-    .explore-hint::before,
-    .explore-hint::after {
-      content: '✦';
-      margin: 0 10px;
-      font-size: 7px;
-      vertical-align: middle;
-    }
-
-    #toggle-info-btn {
-      font-family: 'Raleway', sans-serif;
-      font-weight: 200;
-      font-size: 10px;
-      letter-spacing: 0.4em;
-      text-transform: uppercase;
-      color: rgba(240, 234, 216, 0.4);
+      color: rgba(240,234,216,0.45);
       background: transparent;
       border: none;
       cursor: pointer;
       padding: 0;
       transition: color 0.3s;
-    }
-
-    #toggle-info-btn:hover { color: var(--amber-light); }
-
-    /* ── AUDIO BUTTON ── */
-    #audio-btn {
-      position: fixed;
-      bottom: 28px;
-      right: 32px;
-      z-index: 20;
-      font-family: 'Raleway', sans-serif;
-      font-weight: 300;
-      font-size: 10px;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: rgba(240, 234, 216, 0.5);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      transition: color 0.3s;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      white-space: nowrap;
     }
 
-    #audio-btn:hover { color: var(--amber-light); }
+    .bar-label:hover { color: var(--amber-light); }
+
+    .explore-hint {
+      justify-self: start;
+    }
+
+    .explore-hint::before,
+    .explore-hint::after {
+      content: '✦';
+      font-size: 7px;
+      opacity: 0.7;
+    }
+
+    #toggle-info-btn {
+      justify-self: center;
+    }
+
+    #audio-btn {
+      justify-self: end;
+    }
 
     #audio-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 16px; height: 16px;
       flex-shrink: 0;
+    }
+
+    /* Mobile: stack into a column */
+    @media (max-width: 540px) {
+      .bar-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 10px;
+        padding: 12px 20px 20px;
+      }
+      .explore-hint, #toggle-info-btn, #audio-btn {
+        justify-self: center;
+      }
     }
 
     /* ── CONTENT PANEL ── */
@@ -298,49 +310,59 @@
       pointer-events: all;
     }
 
-    .content-panel {
+    /* Wrapper holds both the panel and the outside close button */
+    .panel-wrapper {
       position: relative;
       width: min(680px, calc(100vw - 48px));
       max-height: calc(100vh - 80px);
-      overflow-y: auto;
-      background: rgba(10, 22, 14, 0.92);
-      backdrop-filter: blur(2px);
-      border: 1px solid rgba(200, 146, 42, 0.2);
-      padding: 60px 56px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(200, 146, 42, 0.3) transparent;
     }
 
-    /* Sticky close button — always visible top-right */
+    /* ✕ sits outside the panel at the top-right corner */
     .panel-close {
-      position: sticky;
-      top: 0;
-      float: right;
-      margin: -40px -36px 0 0;
-      width: 36px;
-      height: 36px;
+      position: absolute;
+      top: -14px;
+      right: -14px;
+      z-index: 6;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: 'Raleway', sans-serif;
-      font-weight: 200;
-      font-size: 18px;
-      color: rgba(240, 234, 216, 0.45);
-      background: rgba(10, 22, 14, 0.85);
-      border: 1px solid rgba(200, 146, 42, 0.15);
+      font-size: 14px;
+      color: rgba(240,234,216,0.55);
+      background: rgba(13,31,21,0.9);
+      border: 1px solid rgba(200,146,42,0.25);
+      border-radius: 2px;
       cursor: pointer;
       transition: color 0.3s, border-color 0.3s;
-      z-index: 5;
     }
 
     .panel-close:hover {
       color: var(--amber-light);
-      border-color: rgba(200, 146, 42, 0.4);
+      border-color: rgba(200,146,42,0.5);
+    }
+
+    .content-panel {
+      width: 100%;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+      background: rgba(10,22,14,0.92);
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(200,146,42,0.2);
+      padding: 56px 56px 48px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(200,146,42,0.3) transparent;
     }
 
     .content-panel::-webkit-scrollbar { width: 3px; }
     .content-panel::-webkit-scrollbar-track { background: transparent; }
-    .content-panel::-webkit-scrollbar-thumb { background: rgba(200, 146, 42, 0.3); }
+    .content-panel::-webkit-scrollbar-thumb { background: rgba(200,146,42,0.3); }
+
+    @media (max-width: 540px) {
+      .panel-wrapper { width: calc(100vw - 24px); }
+      .panel-close { top: -12px; right: -8px; }
+      .content-panel { padding: 40px 24px 36px; }
+    }
 
     .panel-tag {
       font-family: 'Raleway', sans-serif;
@@ -355,7 +377,7 @@
     .panel-title {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 300;
-      font-size: clamp(32px, 4.5vw, 52px);
+      font-size: clamp(28px, 4.5vw, 52px);
       line-height: 1.05;
       color: var(--cream);
       margin-bottom: 10px;
@@ -365,14 +387,13 @@
       font-family: 'Cormorant Garamond', serif;
       font-weight: 300;
       font-style: italic;
-      font-size: clamp(16px, 2.2vw, 22px);
-      color: rgba(200, 146, 42, 0.8);
+      font-size: clamp(15px, 2.2vw, 22px);
+      color: rgba(200,146,42,0.8);
       margin-bottom: 40px;
     }
 
     .divider {
-      width: 48px;
-      height: 1px;
+      width: 48px; height: 1px;
       background: linear-gradient(to right, var(--amber), transparent);
       margin-bottom: 40px;
     }
@@ -382,7 +403,7 @@
       font-weight: 300;
       font-size: clamp(13px, 1.5vw, 15px);
       line-height: 2.0;
-      color: rgba(240, 234, 216, 0.78);
+      color: rgba(240,234,216,0.78);
       letter-spacing: 0.025em;
       margin-bottom: 28px;
     }
@@ -390,7 +411,7 @@
     .panel-body h3 {
       font-family: 'Cormorant Garamond', serif;
       font-weight: 400;
-      font-size: clamp(18px, 2.4vw, 26px);
+      font-size: clamp(17px, 2.4vw, 26px);
       color: var(--cream);
       margin: 40px 0 16px;
       letter-spacing: 0.02em;
@@ -403,15 +424,14 @@
       margin: 24px 0 40px;
     }
 
-    @media (max-width: 520px) {
+    @media (max-width: 540px) {
       .benefits-grid { grid-template-columns: 1fr; }
-      .content-panel { padding: 40px 28px; }
     }
 
     .benefit-item {
       padding: 20px;
-      border-left: 1px solid rgba(200, 146, 42, 0.25);
-      background: rgba(200, 146, 42, 0.04);
+      border-left: 1px solid rgba(200,146,42,0.25);
+      background: rgba(200,146,42,0.04);
     }
 
     .benefit-item .b-title {
@@ -427,29 +447,28 @@
       font-weight: 300;
       font-size: 12px;
       line-height: 1.8;
-      color: rgba(240, 234, 216, 0.65);
+      color: rgba(240,234,216,0.65);
       letter-spacing: 0.02em;
       margin: 0;
     }
 
-    .back-btn {
-      display: inline-block;
-      margin-top: 8px;
+    .panel-credit {
+      margin-top: 48px;
       font-family: 'Raleway', sans-serif;
       font-weight: 300;
-      font-size: 10px;
-      letter-spacing: 0.4em;
-      text-transform: uppercase;
-      color: rgba(240, 234, 216, 0.5);
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      padding: 0;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: rgba(240,234,216,0.3);
+    }
+
+    .panel-credit a {
+      color: rgba(200,146,42,0.5);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(200,146,42,0.25);
       transition: color 0.3s;
     }
 
-    .back-btn:hover { color: var(--amber-light); }
-    .back-btn::before { content: '← '; letter-spacing: 0; }
+    .panel-credit a:hover { color: rgba(232,185,106,0.8); }
 
     @keyframes rise {
       to { opacity: 1; transform: translateY(0); }
@@ -458,7 +477,6 @@
 </head>
 <body>
 
-  <!-- Background forest audio -->
   <audio id="forest-audio" src="./Assets/forest-birds.mp3" loop preload="auto"></audio>
 
   <!-- Loading screen -->
@@ -483,108 +501,109 @@
     </div>
   </div>
 
-  <!-- Bottom bar: explore hint + hide/show toggle -->
+  <!-- Bottom bar -->
   <div id="bottom-bar">
-    <span class="explore-hint">Drag to explore</span>
-    <button id="toggle-info-btn">Hide Info</button>
+    <div class="bar-rule"></div>
+    <div class="bar-inner">
+      <span class="bar-label explore-hint">Drag to Explore</span>
+      <button class="bar-label" id="toggle-info-btn">Hide Info</button>
+      <button class="bar-label" id="audio-btn" title="Toggle forest sounds">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 9l-4 4h-3v2h3l4 4V9z"/>
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" id="wave1"/>
+          <path d="M18 6a8 8 0 0 1 0 12" id="wave2"/>
+        </svg>
+        Forest Sounds
+      </button>
+    </div>
   </div>
 
   <!-- Content panel -->
   <div id="content">
-    <div class="content-panel">
-      <button class="panel-close" id="panel-close-btn" title="Close">✕</button>
-      <p class="panel-tag">The Practice</p>
-      <h2 class="panel-title">The Art of Forest Bathing</h2>
-      <p class="panel-subtitle">Shinrin-yoku — to bathe in the forest atmosphere</p>
-      <div class="divider"></div>
+    <div class="panel-wrapper">
+      <button class="panel-close" id="panel-close-btn" title="Close (Esc)">✕</button>
+      <div class="content-panel">
+        <p class="panel-tag">The Practice</p>
+        <h2 class="panel-title">The Art of Forest Bathing</h2>
+        <p class="panel-subtitle">Shinrin-yoku — to bathe in the forest atmosphere</p>
+        <div class="divider"></div>
 
-      <div class="panel-body">
-        <p>
-          In Japan during the 1980s, as urban life accelerated and stress-related illness
-          reached epidemic levels, the government did something unusual: they prescribed trees.
-          Coined in 1982 by the Japanese Ministry of Agriculture, Forestry and Fisheries,
-          <em>Shinrin-yoku</em> — literally "forest bathing" — was proposed as a cornerstone
-          of national public health policy.
-        </p>
-        <p>
-          The concept is beautifully simple. You are not hiking, foraging, or exercising.
-          You are simply being present under the canopy — walking slowly, breathing deeply,
-          engaging all five senses. You let the forest in.
-        </p>
+        <div class="panel-body">
+          <p>
+            In Japan during the 1980s, as urban life accelerated and stress-related illness
+            reached epidemic levels, the government did something unusual: they prescribed trees.
+            Coined in 1982 by the Japanese Ministry of Agriculture, Forestry and Fisheries,
+            <em>Shinrin-yoku</em> — literally "forest bathing" — was proposed as a cornerstone
+            of national public health policy.
+          </p>
+          <p>
+            The concept is beautifully simple. You are not hiking, foraging, or exercising.
+            You are simply being present under the canopy — walking slowly, breathing deeply,
+            engaging all five senses. You let the forest in.
+          </p>
 
-        <h3>The Science of Stillness</h3>
-        <p>
-          What began as intuition has since become one of the most rigorously studied fields
-          in environmental medicine. Researchers in Japan, South Korea, Finland, and the United
-          States have consistently found that as little as two hours among trees produces
-          measurable changes in the body's chemistry — lowering cortisol, reducing blood pressure,
-          and boosting natural killer cell activity in the immune system.
-        </p>
-        <p>
-          The key lies partly in what trees exhale. Phytoncides — natural airborne compounds
-          released by conifers, oaks, and cedars — have been shown to increase parasympathetic
-          nervous system activity, shifting the body out of its chronic fight-or-flight state.
-          The forest is, quite literally, medicinal air.
-        </p>
+          <h3>The Science of Stillness</h3>
+          <p>
+            What began as intuition has since become one of the most rigorously studied fields
+            in environmental medicine. Researchers in Japan, South Korea, Finland, and the United
+            States have consistently found that as little as two hours among trees produces
+            measurable changes in the body's chemistry — lowering cortisol, reducing blood pressure,
+            and boosting natural killer cell activity in the immune system.
+          </p>
+          <p>
+            The key lies partly in what trees exhale. Phytoncides — natural airborne compounds
+            released by conifers, oaks, and cedars — have been shown to increase parasympathetic
+            nervous system activity, shifting the body out of its chronic fight-or-flight state.
+            The forest is, quite literally, medicinal air.
+          </p>
 
-        <h3>What the Research Shows</h3>
+          <h3>What the Research Shows</h3>
 
-        <div class="benefits-grid">
-          <div class="benefit-item">
-            <p class="b-title">Reduced Stress</p>
-            <p class="b-text">
-              Studies show a 12–15% reduction in cortisol levels after
-              just 20 minutes of mindful forest immersion.
-            </p>
+          <div class="benefits-grid">
+            <div class="benefit-item">
+              <p class="b-title">Reduced Stress</p>
+              <p class="b-text">
+                Studies show a 12–15% reduction in cortisol levels after
+                just 20 minutes of mindful forest immersion.
+              </p>
+            </div>
+            <div class="benefit-item">
+              <p class="b-title">Boosted Immunity</p>
+              <p class="b-text">
+                Natural killer cell activity — the body's front-line cancer
+                defence — increases significantly after forest bathing sessions.
+              </p>
+            </div>
+            <div class="benefit-item">
+              <p class="b-title">Restored Attention</p>
+              <p class="b-text">
+                Attention Restoration Theory shows that natural environments
+                replenish the directed-attention reserves depleted by urban life.
+              </p>
+            </div>
+            <div class="benefit-item">
+              <p class="b-title">Lower Blood Pressure</p>
+              <p class="b-text">
+                Both systolic and diastolic pressure drop measurably, with
+                effects lasting up to a week after a forest visit.
+              </p>
+            </div>
           </div>
-          <div class="benefit-item">
-            <p class="b-title">Boosted Immunity</p>
-            <p class="b-text">
-              Natural killer cell activity — the body's front-line cancer
-              defence — increases significantly after forest bathing sessions.
-            </p>
-          </div>
-          <div class="benefit-item">
-            <p class="b-title">Restored Attention</p>
-            <p class="b-text">
-              Attention Restoration Theory shows that natural environments
-              replenish the directed-attention reserves depleted by urban life.
-            </p>
-          </div>
-          <div class="benefit-item">
-            <p class="b-title">Lower Blood Pressure</p>
-            <p class="b-text">
-              Both systolic and diastolic pressure drop measurably, with
-              effects lasting up to a week after a forest visit.
-            </p>
-          </div>
+
+          <p>
+            You don't need ancient Japanese cedar forests to feel the benefit.
+            Urban parks, coastal woodland, even a single tree-lined street can
+            shift your nervous system into a quieter gear — if you slow down
+            enough to let it.
+          </p>
+
+          <p class="panel-credit">
+            Forest sound by <a href="https://freesound.org/people/newlocknew/sounds/840915/" target="_blank" rel="noopener">newlocknew</a>
+          </p>
         </div>
-
-        <p>
-          You don't need ancient Japanese cedar forests to feel the benefit.
-          Urban parks, coastal woodland, even a single tree-lined street can
-          shift your nervous system into a quieter gear — if you slow down
-          enough to let it.
-        </p>
-
-        <button class="back-btn" id="back-btn">Return to the forest</button>
-
-        <p style="margin-top: 48px; font-size: 11px; letter-spacing: 0.04em; color: rgba(240,234,216,0.3);">
-          Forest sound by <a href="https://freesound.org/people/newlocknew/sounds/840915/" target="_blank" rel="noopener" style="color: rgba(200,146,42,0.5); text-decoration: none; border-bottom: 1px solid rgba(200,146,42,0.25); transition: color 0.3s;" onmouseover="this.style.color='rgba(232,185,106,0.8)'" onmouseout="this.style.color='rgba(200,146,42,0.5)'">newlocknew</a>
-        </p>
       </div>
     </div>
   </div>
-
-  <!-- Audio toggle -->
-  <button id="audio-btn" title="Toggle forest sounds">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path d="M9 9l-4 4h-3v2h3l4 4V9z"/>
-      <path d="M15.5 8.5a5 5 0 0 1 0 7" id="wave1"/>
-      <path d="M18 6a8 8 0 0 1 0 12" id="wave2"/>
-    </svg>
-    Forest Sounds
-  </button>
 
 
   <script type="module">
@@ -592,32 +611,33 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
 
-    const SPLAT_URL  = "./forest-path.spz";
-    const AUDIO_FILE = "./Assets/forest-birds.mp3";
+    const SPLAT_URL = "./forest-path.spz";
 
-    const loader       = document.getElementById('loader');
-    const canvas       = document.getElementById('splat-canvas');
-    const heroEl       = document.getElementById('hero');
-    const heroInnerEl  = document.getElementById('hero-inner');
-    const contentEl    = document.getElementById('content');
-    const learnBtn     = document.getElementById('learn-more-btn');
-    const backBtn      = document.getElementById('back-btn');
-    const closeBtn     = document.getElementById('panel-close-btn');
-    const audioBtn     = document.getElementById('audio-btn');
-    const audioEl      = document.getElementById('forest-audio');
+    // Home camera position — tweak y to raise/lower the viewpoint
+    const HOME_POS = new THREE.Vector3(0, 6, 5);
+
+    const loader        = document.getElementById('loader');
+    const canvas        = document.getElementById('splat-canvas');
+    const heroEl        = document.getElementById('hero');
+    const heroInnerEl   = document.getElementById('hero-inner');
+    const contentEl     = document.getElementById('content');
+    const learnBtn      = document.getElementById('learn-more-btn');
+    const closeBtn      = document.getElementById('panel-close-btn');
+    const audioBtn      = document.getElementById('audio-btn');
+    const audioEl       = document.getElementById('forest-audio');
     const toggleInfoBtn = document.getElementById('toggle-info-btn');
 
     // ── Three.js Setup ──
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.8, 5);
+    camera.position.copy(HOME_POS);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.setSize(innerWidth, innerHeight);
     renderer.setClearColor(0x0d1f15, 1);
 
-    // ── SparkRenderer — required for SplatMesh to render ──
+    // SparkRenderer — required for SplatMesh
     const spark = new SparkRenderer({ renderer });
     scene.add(spark);
 
@@ -629,8 +649,8 @@
     controls.autoRotateSpeed = 0.18;
     controls.enableZoom      = false;
     controls.enablePan       = false;
-    controls.minPolarAngle   = Math.PI / 6;   // ~30° — allows looking up at treetops
-    controls.maxPolarAngle   = Math.PI / 2;   // 90° — horizon is the floor, no underground
+    controls.minPolarAngle   = Math.PI / 6;  // 30° — can look up at treetops
+    controls.maxPolarAngle   = Math.PI / 2;  // 90° — hard horizon, no underground
     controls.rotateSpeed     = 0.4;
 
     // ── Load Splat ──
@@ -641,16 +661,9 @@
 
     const splatMesh = new SplatMesh({ url: SPLAT_URL });
     scene.add(splatMesh);
-
-    // Fire on load event if available, otherwise fall back to a timeout
     splatMesh.addEventListener('load', dismissLoader);
-    splatMesh.addEventListener('error', (e) => {
-      console.error('Splat load error:', e);
-      dismissLoader();
-    });
-
-    // Fallback: dismiss loader after 12s regardless (large file, slow connections)
-    setTimeout(dismissLoader, 12000);
+    splatMesh.addEventListener('error', (e) => { console.error(e); dismissLoader(); });
+    setTimeout(dismissLoader, 12000); // fallback for slow connections
 
     // ── Resize ──
     window.addEventListener('resize', () => {
@@ -663,22 +676,24 @@
     let isTransitioning = false;
     let inContent       = false;
     let zoomTarget      = null;
+    let zoomingHome     = false;
 
     function enterContent() {
       if (isTransitioning || inContent) return;
       isTransitioning = true;
       inContent = true;
-
       controls.autoRotate = false;
+
+      // Drift camera gently forward
       zoomTarget = new THREE.Vector3(
         camera.position.x * 0.5,
-        camera.position.y * 0.8,
-        camera.position.z * 0.55
+        camera.position.y * 0.85,
+        camera.position.z * 0.6
       );
+      zoomingHome = false;
 
       canvas.classList.add('blurred');
       heroEl.classList.add('hidden');
-
       setTimeout(() => {
         contentEl.classList.add('visible');
         isTransitioning = false;
@@ -693,39 +708,42 @@
       contentEl.classList.remove('visible');
       canvas.classList.remove('blurred');
 
+      // Lerp camera back to home position
+      zoomTarget  = HOME_POS.clone();
+      zoomingHome = true;
+
       setTimeout(() => {
         heroEl.classList.remove('hidden');
         controls.autoRotate = true;
-        zoomTarget = null;
         isTransitioning = false;
       }, 500);
     }
 
     learnBtn.addEventListener('click', enterContent);
-    backBtn.addEventListener('click', exitContent);
     closeBtn.addEventListener('click', exitContent);
-
-    // ESC key closes the panel
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && inContent) exitContent();
     });
 
     // ── Hide / Show hero info ──
     let infoVisible = true;
-
     toggleInfoBtn.addEventListener('click', () => {
       infoVisible = !infoVisible;
-      heroInnerEl.style.transition = 'opacity 0.6s ease';
-      heroInnerEl.style.opacity    = infoVisible ? '1' : '0';
+      heroInnerEl.style.transition   = 'opacity 0.6s ease';
+      heroInnerEl.style.opacity      = infoVisible ? '1' : '0';
       heroInnerEl.style.pointerEvents = infoVisible ? 'all' : 'none';
-      toggleInfoBtn.textContent    = infoVisible ? 'Hide Info' : 'Show Info';
+      toggleInfoBtn.textContent      = infoVisible ? 'Hide Info' : 'Show Info';
     });
 
     // ── Camera Zoom Animation ──
     function animateZoom() {
-      if (zoomTarget) {
-        camera.position.lerp(zoomTarget, 0.018);
-        controls.update();
+      if (!zoomTarget) return;
+      camera.position.lerp(zoomTarget, 0.018);
+      // When returning home, snap and stop once close enough
+      if (zoomingHome && camera.position.distanceTo(zoomTarget) < 0.08) {
+        camera.position.copy(zoomTarget);
+        zoomTarget  = null;
+        zoomingHome = false;
       }
     }
 
@@ -738,12 +756,10 @@
     }
     animate();
 
-
     // ── Audio Controls ──
     let audioStarted = false;
     let audioMuted   = false;
-
-    audioEl.volume = 0.5;
+    audioEl.volume   = 0.5;
 
     function startAudio() {
       if (audioStarted) return;
@@ -753,26 +769,21 @@
     }
 
     function toggleAudio() {
-      if (!audioStarted) {
-        startAudio();
-        return;
-      }
-      audioMuted = !audioMuted;
+      if (!audioStarted) { startAudio(); return; }
+      audioMuted    = !audioMuted;
       audioEl.muted = audioMuted;
       updateAudioBtn();
     }
 
     function updateAudioBtn() {
-      const w1 = document.getElementById('wave1');
-      const w2 = document.getElementById('wave2');
+      const w1    = document.getElementById('wave1');
+      const w2    = document.getElementById('wave2');
       const muted = audioMuted || !audioStarted;
       if (w1) w1.style.opacity = muted ? '0.2' : '1';
       if (w2) w2.style.opacity = muted ? '0.2' : '1';
     }
 
     audioBtn.addEventListener('click', toggleAudio);
-
-    // Auto-start on first interaction with the page
     document.addEventListener('pointerdown', () => {
       if (!audioStarted) startAudio();
     }, { once: true });
