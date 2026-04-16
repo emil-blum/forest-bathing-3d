@@ -527,7 +527,7 @@
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { SplatMesh } from '@sparkjsdev/spark';
+    import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
 
     const SPLAT_URL  = "./forest-path.spz";
     const AUDIO_FILE = "./Assets/forest-birds.mp3";
@@ -551,6 +551,10 @@
     renderer.setSize(innerWidth, innerHeight);
     renderer.setClearColor(0x0d1f15, 1);
 
+    // ── SparkRenderer — required for SplatMesh to render ──
+    const spark = new SparkRenderer({ renderer });
+    scene.add(spark);
+
     // ── Orbit Controls ──
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping   = true;
@@ -564,19 +568,23 @@
     controls.rotateSpeed     = 0.4;
 
     // ── Load Splat ──
+    function dismissLoader() {
+      loader.classList.add('fade-out');
+      setTimeout(() => loader.style.display = 'none', 1300);
+    }
+
     const splatMesh = new SplatMesh({ url: SPLAT_URL });
     scene.add(splatMesh);
 
-    splatMesh.addEventListener('load', () => {
-      loader.classList.add('fade-out');
-      setTimeout(() => loader.style.display = 'none', 1300);
-    });
-
+    // Fire on load event if available, otherwise fall back to a timeout
+    splatMesh.addEventListener('load', dismissLoader);
     splatMesh.addEventListener('error', (e) => {
       console.error('Splat load error:', e);
-      loader.classList.add('fade-out');
-      setTimeout(() => loader.style.display = 'none', 1300);
+      dismissLoader();
     });
+
+    // Fallback: dismiss loader after 12s regardless (large file, slow connections)
+    setTimeout(dismissLoader, 12000);
 
     // ── Resize ──
     window.addEventListener('resize', () => {
