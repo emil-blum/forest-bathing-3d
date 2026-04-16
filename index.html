@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forest Bathing · Shinrin-yoku</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Raleway:wght@200;300;400&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.167.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.1/examples/jsm/",
+      "@sparkjsdev/spark": "https://sparkjs.dev/releases/spark/2.0.0/spark.module.js"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --forest-deep:   #0d1f15;
+      --forest-mid:    #1b3828;
+      --forest-light:  #2d5c3e;
+      --amber:         #c8922a;
+      --amber-light:   #e8b96a;
+      --cream:         #f0ead8;
+      --mist:          rgba(240, 234, 216, 0.88);
+      --transition-speed: 1.4s;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      background: var(--forest-deep);
+      cursor: default;
+    }
+
+    /* ── SPLAT CANVAS ── */
+    #splat-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      transition:
+        filter var(--transition-speed) ease,
+        transform var(--transition-speed) ease,
+        opacity var(--transition-speed) ease;
+    }
+
+    #splat-canvas.blurred {
+      filter: blur(14px) brightness(0.38) saturate(0.7);
+      transform: scale(1.07);
+    }
+
+    /* ── LOADING SCREEN ── */
+    #loader {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--forest-deep);
+      transition: opacity 1.2s ease;
+    }
+
+    #loader.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader-ring {
+      width: 48px;
+      height: 48px;
+      border: 1.5px solid rgba(200, 146, 42, 0.2);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
+    }
+
+    .loader-text {
+      margin-top: 20px;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 11px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: rgba(200, 146, 42, 0.6);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── HERO OVERLAY ── */
+    #hero {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    #hero.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.55) 0%, transparent 65%),
+        radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.7) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      text-align: center;
+      max-width: 720px;
+      padding: 0 32px;
+    }
+
+    .eyebrow {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 11px;
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: var(--amber-light);
+      opacity: 0;
+      transform: translateY(12px);
+      animation: rise 1.2s ease 0.3s forwards;
+    }
+
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(58px, 9vw, 110px);
+      line-height: 0.92;
+      color: var(--cream);
+      letter-spacing: -0.01em;
+      margin: 16px 0 24px;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: rise 1.4s ease 0.6s forwards;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--amber-light);
+    }
+
+    .intro-text {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: clamp(13px, 1.8vw, 16px);
+      line-height: 1.85;
+      color: rgba(240, 234, 216, 0.82);
+      letter-spacing: 0.04em;
+      max-width: 460px;
+      margin: 0 auto 40px;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: rise 1.4s ease 1s forwards;
+    }
+
+    .cta-btn {
+      pointer-events: all;
+      display: inline-block;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: 11px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--cream);
+      border: 1px solid rgba(240, 234, 216, 0.4);
+      padding: 16px 40px;
+      cursor: pointer;
+      background: rgba(13, 31, 21, 0.35);
+      backdrop-filter: blur(4px);
+      transition: all 0.4s ease;
+      opacity: 0;
+      animation: rise 1.2s ease 1.5s forwards;
+    }
+
+    .cta-btn:hover {
+      background: rgba(200, 146, 42, 0.15);
+      border-color: var(--amber-light);
+      color: var(--amber-light);
+      letter-spacing: 0.5em;
+    }
+
+    .explore-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 10px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: rgba(240, 234, 216, 0.4);
+      opacity: 0;
+      animation: rise 1s ease 2.2s forwards;
+    }
+
+    .explore-hint::before,
+    .explore-hint::after {
+      content: '✦';
+      margin: 0 10px;
+      font-size: 7px;
+      vertical-align: middle;
+    }
+
+    /* ── AUDIO BUTTON ── */
+    #audio-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 32px;
+      z-index: 20;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(240, 234, 216, 0.5);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      transition: color 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #audio-btn:hover { color: var(--amber-light); }
+
+    #audio-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ── CONTENT PANEL ── */
+    #content {
+      position: fixed;
+      inset: 0;
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.9s ease 0.5s;
+    }
+
+    #content.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .content-panel {
+      width: min(680px, calc(100vw - 48px));
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+      background: rgba(10, 22, 14, 0.92);
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(200, 146, 42, 0.2);
+      padding: 60px 56px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(200, 146, 42, 0.3) transparent;
+    }
+
+    .content-panel::-webkit-scrollbar { width: 3px; }
+    .content-panel::-webkit-scrollbar-track { background: transparent; }
+    .content-panel::-webkit-scrollbar-thumb { background: rgba(200, 146, 42, 0.3); }
+
+    .panel-tag {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 10px;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 28px;
+    }
+
+    .panel-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: clamp(32px, 4.5vw, 52px);
+      line-height: 1.05;
+      color: var(--cream);
+      margin-bottom: 10px;
+    }
+
+    .panel-subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(16px, 2.2vw, 22px);
+      color: rgba(200, 146, 42, 0.8);
+      margin-bottom: 40px;
+    }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: linear-gradient(to right, var(--amber), transparent);
+      margin-bottom: 40px;
+    }
+
+    .panel-body p {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: clamp(13px, 1.5vw, 15px);
+      line-height: 2.0;
+      color: rgba(240, 234, 216, 0.78);
+      letter-spacing: 0.025em;
+      margin-bottom: 28px;
+    }
+
+    .panel-body h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: clamp(18px, 2.4vw, 26px);
+      color: var(--cream);
+      margin: 40px 0 16px;
+      letter-spacing: 0.02em;
+    }
+
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0 40px;
+    }
+
+    @media (max-width: 520px) {
+      .benefits-grid { grid-template-columns: 1fr; }
+      .content-panel { padding: 40px 28px; }
+    }
+
+    .benefit-item {
+      padding: 20px;
+      border-left: 1px solid rgba(200, 146, 42, 0.25);
+      background: rgba(200, 146, 42, 0.04);
+    }
+
+    .benefit-item .b-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 17px;
+      color: var(--amber-light);
+      margin-bottom: 8px;
+    }
+
+    .benefit-item .b-text {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: 12px;
+      line-height: 1.8;
+      color: rgba(240, 234, 216, 0.65);
+      letter-spacing: 0.02em;
+      margin: 0;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin-top: 8px;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: 10px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: rgba(240, 234, 216, 0.5);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.3s;
+    }
+
+    .back-btn:hover { color: var(--amber-light); }
+    .back-btn::before { content: '← '; letter-spacing: 0; }
+
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background forest audio -->
+  <audio id="forest-audio" src="./Assets/forest-birds.mp3" loop preload="auto"></audio>
+
+  <!-- Loading screen -->
+  <div id="loader">
+    <div class="loader-ring"></div>
+    <p class="loader-text">Entering the forest</p>
+  </div>
+
+  <!-- Splat canvas -->
+  <canvas id="splat-canvas"></canvas>
+
+  <!-- Hero overlay -->
+  <div id="hero">
+    <div class="hero-inner">
+      <p class="eyebrow">森林浴 · Shinrin-yoku</p>
+      <h1>Forest<br><em>Bathing</em></h1>
+      <p class="intro-text">
+        Step into stillness. Ancient trees breathe wisdom into the air —
+        a practice that has healed millions, now yours to explore.
+      </p>
+      <button class="cta-btn" id="learn-more-btn">Enter the Forest</button>
+    </div>
+    <p class="explore-hint">Drag to explore the scene</p>
+  </div>
+
+  <!-- Content panel -->
+  <div id="content">
+    <div class="content-panel">
+      <p class="panel-tag">The Practice</p>
+      <h2 class="panel-title">The Art of Forest Bathing</h2>
+      <p class="panel-subtitle">Shinrin-yoku — to bathe in the forest atmosphere</p>
+      <div class="divider"></div>
+
+      <div class="panel-body">
+        <p>
+          In Japan during the 1980s, as urban life accelerated and stress-related illness
+          reached epidemic levels, the government did something unusual: they prescribed trees.
+          Coined in 1982 by the Japanese Ministry of Agriculture, Forestry and Fisheries,
+          <em>Shinrin-yoku</em> — literally "forest bathing" — was proposed as a cornerstone
+          of national public health policy.
+        </p>
+        <p>
+          The concept is beautifully simple. You are not hiking, foraging, or exercising.
+          You are simply being present under the canopy — walking slowly, breathing deeply,
+          engaging all five senses. You let the forest in.
+        </p>
+
+        <h3>The Science of Stillness</h3>
+        <p>
+          What began as intuition has since become one of the most rigorously studied fields
+          in environmental medicine. Researchers in Japan, South Korea, Finland, and the United
+          States have consistently found that as little as two hours among trees produces
+          measurable changes in the body's chemistry — lowering cortisol, reducing blood pressure,
+          and boosting natural killer cell activity in the immune system.
+        </p>
+        <p>
+          The key lies partly in what trees exhale. Phytoncides — natural airborne compounds
+          released by conifers, oaks, and cedars — have been shown to increase parasympathetic
+          nervous system activity, shifting the body out of its chronic fight-or-flight state.
+          The forest is, quite literally, medicinal air.
+        </p>
+
+        <h3>What the Research Shows</h3>
+
+        <div class="benefits-grid">
+          <div class="benefit-item">
+            <p class="b-title">Reduced Stress</p>
+            <p class="b-text">
+              Studies show a 12–15% reduction in cortisol levels after
+              just 20 minutes of mindful forest immersion.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <p class="b-title">Boosted Immunity</p>
+            <p class="b-text">
+              Natural killer cell activity — the body's front-line cancer
+              defence — increases significantly after forest bathing sessions.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <p class="b-title">Restored Attention</p>
+            <p class="b-text">
+              Attention Restoration Theory shows that natural environments
+              replenish the directed-attention reserves depleted by urban life.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <p class="b-title">Lower Blood Pressure</p>
+            <p class="b-text">
+              Both systolic and diastolic pressure drop measurably, with
+              effects lasting up to a week after a forest visit.
+            </p>
+          </div>
+        </div>
+
+        <p>
+          You don't need ancient Japanese cedar forests to feel the benefit.
+          Urban parks, coastal woodland, even a single tree-lined street can
+          shift your nervous system into a quieter gear — if you slow down
+          enough to let it.
+        </p>
+
+        <button class="back-btn" id="back-btn">Return to the forest</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio toggle -->
+  <button id="audio-btn" title="Toggle forest sounds">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M9 9l-4 4h-3v2h3l4 4V9z"/>
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" id="wave1"/>
+      <path d="M18 6a8 8 0 0 1 0 12" id="wave2"/>
+    </svg>
+    Forest Sounds
+  </button>
+
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { SplatMesh } from '@sparkjsdev/spark';
+
+    const SPLAT_URL  = "./forest-path.spz";
+    const AUDIO_FILE = "./Assets/forest-birds.mp3";
+
+    const loader    = document.getElementById('loader');
+    const canvas    = document.getElementById('splat-canvas');
+    const heroEl    = document.getElementById('hero');
+    const contentEl = document.getElementById('content');
+    const learnBtn  = document.getElementById('learn-more-btn');
+    const backBtn   = document.getElementById('back-btn');
+    const audioBtn  = document.getElementById('audio-btn');
+    const audioEl   = document.getElementById('forest-audio');
+
+    // ── Three.js Setup ──
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
+    camera.position.set(0, 0.5, 5);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setClearColor(0x0d1f15, 1);
+
+    // ── Orbit Controls ──
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping   = true;
+    controls.dampingFactor   = 0.06;
+    controls.autoRotate      = true;
+    controls.autoRotateSpeed = 0.18;
+    controls.enableZoom      = false;
+    controls.enablePan       = false;
+    controls.minPolarAngle   = Math.PI / 4;
+    controls.maxPolarAngle   = (Math.PI * 2) / 3;
+    controls.rotateSpeed     = 0.4;
+
+    // ── Load Splat ──
+    const splatMesh = new SplatMesh({ url: SPLAT_URL });
+    scene.add(splatMesh);
+
+    splatMesh.addEventListener('load', () => {
+      loader.classList.add('fade-out');
+      setTimeout(() => loader.style.display = 'none', 1300);
+    });
+
+    splatMesh.addEventListener('error', (e) => {
+      console.error('Splat load error:', e);
+      loader.classList.add('fade-out');
+      setTimeout(() => loader.style.display = 'none', 1300);
+    });
+
+    // ── Resize ──
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // ── Transition State ──
+    let isTransitioning = false;
+    let inContent       = false;
+    let zoomTarget      = null;
+
+    function enterContent() {
+      if (isTransitioning || inContent) return;
+      isTransitioning = true;
+      inContent = true;
+
+      controls.autoRotate = false;
+      zoomTarget = new THREE.Vector3(
+        camera.position.x * 0.5,
+        camera.position.y * 0.8,
+        camera.position.z * 0.55
+      );
+
+      canvas.classList.add('blurred');
+      heroEl.classList.add('hidden');
+
+      setTimeout(() => {
+        contentEl.classList.add('visible');
+        isTransitioning = false;
+      }, 900);
+    }
+
+    function exitContent() {
+      if (isTransitioning || !inContent) return;
+      isTransitioning = true;
+      inContent = false;
+
+      contentEl.classList.remove('visible');
+      canvas.classList.remove('blurred');
+
+      setTimeout(() => {
+        heroEl.classList.remove('hidden');
+        controls.autoRotate = true;
+        zoomTarget = null;
+        isTransitioning = false;
+      }, 500);
+    }
+
+    learnBtn.addEventListener('click', enterContent);
+    backBtn.addEventListener('click', exitContent);
+
+    // ── Camera Zoom Animation ──
+    function animateZoom() {
+      if (zoomTarget) {
+        camera.position.lerp(zoomTarget, 0.018);
+        controls.update();
+      }
+    }
+
+    // ── Render Loop ──
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!inContent) controls.update();
+      animateZoom();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+
+    // ── Audio Controls ──
+    let audioStarted = false;
+    let audioMuted   = false;
+
+    audioEl.volume = 0.5;
+
+    function startAudio() {
+      if (audioStarted) return;
+      audioStarted = true;
+      audioEl.play().catch(() => {});
+      updateAudioBtn();
+    }
+
+    function toggleAudio() {
+      if (!audioStarted) {
+        startAudio();
+        return;
+      }
+      audioMuted = !audioMuted;
+      audioEl.muted = audioMuted;
+      updateAudioBtn();
+    }
+
+    function updateAudioBtn() {
+      const w1 = document.getElementById('wave1');
+      const w2 = document.getElementById('wave2');
+      const muted = audioMuted || !audioStarted;
+      if (w1) w1.style.opacity = muted ? '0.2' : '1';
+      if (w2) w2.style.opacity = muted ? '0.2' : '1';
+    }
+
+    audioBtn.addEventListener('click', toggleAudio);
+
+    // Auto-start on first interaction with the page
+    document.addEventListener('pointerdown', () => {
+      if (!audioStarted) startAudio();
+    }, { once: true });
+
+  </script>
+</body>
+</html>
