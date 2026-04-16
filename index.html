@@ -723,6 +723,12 @@
       if (e.key === 'Escape' && inContent) exitContent();
     });
 
+    // Cancel any in-progress camera reset the moment the user grabs the scene
+    controls.addEventListener('start', () => {
+      zoomTarget  = null;
+      zoomingHome = false;
+    });
+
     // ── Hide / Show hero info ──
     let infoVisible = true;
     toggleInfoBtn.addEventListener('click', () => {
