@@ -202,19 +202,28 @@
       letter-spacing: 0.5em;
     }
 
-    .explore-hint {
-      position: absolute;
-      bottom: 36px;
+    /* ── BOTTOM BAR (explore hint + hide toggle) ── */
+    #bottom-bar {
+      position: fixed;
+      bottom: 28px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      opacity: 0;
+      animation: rise 1s ease 2.2s forwards;
+      white-space: nowrap;
+    }
+
+    .explore-hint {
       font-family: 'Raleway', sans-serif;
       font-weight: 200;
       font-size: 10px;
       letter-spacing: 0.4em;
       text-transform: uppercase;
       color: rgba(240, 234, 216, 0.4);
-      opacity: 0;
-      animation: rise 1s ease 2.2s forwards;
     }
 
     .explore-hint::before,
@@ -224,6 +233,22 @@
       font-size: 7px;
       vertical-align: middle;
     }
+
+    #toggle-info-btn {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 10px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: rgba(240, 234, 216, 0.4);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.3s;
+    }
+
+    #toggle-info-btn:hover { color: var(--amber-light); }
 
     /* ── AUDIO BUTTON ── */
     #audio-btn {
@@ -274,6 +299,7 @@
     }
 
     .content-panel {
+      position: relative;
       width: min(680px, calc(100vw - 48px));
       max-height: calc(100vh - 80px);
       overflow-y: auto;
@@ -283,6 +309,33 @@
       padding: 60px 56px;
       scrollbar-width: thin;
       scrollbar-color: rgba(200, 146, 42, 0.3) transparent;
+    }
+
+    /* Sticky close button — always visible top-right */
+    .panel-close {
+      position: sticky;
+      top: 0;
+      float: right;
+      margin: -40px -36px 0 0;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 18px;
+      color: rgba(240, 234, 216, 0.45);
+      background: rgba(10, 22, 14, 0.85);
+      border: 1px solid rgba(200, 146, 42, 0.15);
+      cursor: pointer;
+      transition: color 0.3s, border-color 0.3s;
+      z-index: 5;
+    }
+
+    .panel-close:hover {
+      color: var(--amber-light);
+      border-color: rgba(200, 146, 42, 0.4);
     }
 
     .content-panel::-webkit-scrollbar { width: 3px; }
@@ -419,21 +472,27 @@
 
   <!-- Hero overlay -->
   <div id="hero">
-    <div class="hero-inner">
+    <div id="hero-inner" class="hero-inner">
       <p class="eyebrow">森林浴 · Shinrin-yoku</p>
       <h1>Forest<br><em>Bathing</em></h1>
       <p class="intro-text">
         Step into stillness. Ancient trees breathe wisdom into the air —
         a practice that has healed millions, now yours to explore.
       </p>
-      <button class="cta-btn" id="learn-more-btn">Enter the Forest</button>
+      <button class="cta-btn" id="learn-more-btn">Learn More</button>
     </div>
-    <p class="explore-hint">Drag to explore the scene</p>
+  </div>
+
+  <!-- Bottom bar: explore hint + hide/show toggle -->
+  <div id="bottom-bar">
+    <span class="explore-hint">Drag to explore</span>
+    <button id="toggle-info-btn">Hide Info</button>
   </div>
 
   <!-- Content panel -->
   <div id="content">
     <div class="content-panel">
+      <button class="panel-close" id="panel-close-btn" title="Close">✕</button>
       <p class="panel-tag">The Practice</p>
       <h2 class="panel-title">The Art of Forest Bathing</h2>
       <p class="panel-subtitle">Shinrin-yoku — to bathe in the forest atmosphere</p>
@@ -532,19 +591,22 @@
     const SPLAT_URL  = "./forest-path.spz";
     const AUDIO_FILE = "./Assets/forest-birds.mp3";
 
-    const loader    = document.getElementById('loader');
-    const canvas    = document.getElementById('splat-canvas');
-    const heroEl    = document.getElementById('hero');
-    const contentEl = document.getElementById('content');
-    const learnBtn  = document.getElementById('learn-more-btn');
-    const backBtn   = document.getElementById('back-btn');
-    const audioBtn  = document.getElementById('audio-btn');
-    const audioEl   = document.getElementById('forest-audio');
+    const loader       = document.getElementById('loader');
+    const canvas       = document.getElementById('splat-canvas');
+    const heroEl       = document.getElementById('hero');
+    const heroInnerEl  = document.getElementById('hero-inner');
+    const contentEl    = document.getElementById('content');
+    const learnBtn     = document.getElementById('learn-more-btn');
+    const backBtn      = document.getElementById('back-btn');
+    const closeBtn     = document.getElementById('panel-close-btn');
+    const audioBtn     = document.getElementById('audio-btn');
+    const audioEl      = document.getElementById('forest-audio');
+    const toggleInfoBtn = document.getElementById('toggle-info-btn');
 
     // ── Three.js Setup ──
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
-    camera.position.set(0, 0.5, 5);
+    camera.position.set(0, 1.8, 5);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -563,8 +625,8 @@
     controls.autoRotateSpeed = 0.18;
     controls.enableZoom      = false;
     controls.enablePan       = false;
-    controls.minPolarAngle   = Math.PI / 4;
-    controls.maxPolarAngle   = (Math.PI * 2) / 3;
+    controls.minPolarAngle   = Math.PI / 6;   // ~30° — allows looking up at treetops
+    controls.maxPolarAngle   = Math.PI / 2;   // 90° — horizon is the floor, no underground
     controls.rotateSpeed     = 0.4;
 
     // ── Load Splat ──
@@ -637,6 +699,23 @@
 
     learnBtn.addEventListener('click', enterContent);
     backBtn.addEventListener('click', exitContent);
+    closeBtn.addEventListener('click', exitContent);
+
+    // ESC key closes the panel
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && inContent) exitContent();
+    });
+
+    // ── Hide / Show hero info ──
+    let infoVisible = true;
+
+    toggleInfoBtn.addEventListener('click', () => {
+      infoVisible = !infoVisible;
+      heroInnerEl.style.transition = 'opacity 0.6s ease';
+      heroInnerEl.style.opacity    = infoVisible ? '1' : '0';
+      heroInnerEl.style.pointerEvents = infoVisible ? 'all' : 'none';
+      toggleInfoBtn.textContent    = infoVisible ? 'Hide Info' : 'Show Info';
+    });
 
     // ── Camera Zoom Animation ──
     function animateZoom() {
