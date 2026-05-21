@@ -83,25 +83,46 @@
 
     /* Breathing exercise — centred */
     .breath-center {
+      position: relative;
+      width: 260px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Intro + get-ready text (phases 1 & 2) */
+    .breath-intro {
+      position: absolute;
+      inset: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      gap: 14px;
+      opacity: 0;
     }
 
-    .breath-invite {
+    .breath-invite,
+    .breath-getready {
       font-family: 'Raleway', sans-serif;
       font-weight: 200;
       font-size: 10px;
       letter-spacing: 0.4em;
       text-transform: uppercase;
-      color: rgba(240,234,216,0.38);
-      margin-bottom: 36px;
+      color: rgba(200,146,42,0.7);
+      text-align: center;
     }
 
+    .breath-getready { opacity: 0; }
+
+    /* Breathing circle (phase 3+) */
     .breath-circle-wrap {
-      position: relative;
+      position: absolute;
       width: 160px;
       height: 160px;
+      opacity: 0;
+      transition: opacity 0.8s ease;
     }
 
     .breath-svg { width: 100%; height: 100%; }
@@ -118,15 +139,10 @@
       stroke-width: 1.5;
       transform-origin: center;
       transform-box: fill-box;
-      animation: breathe 12s linear infinite;
+      transform: scale(0.58);
+      opacity: 0.5;
       filter: drop-shadow(0 0 6px rgba(200,146,42,0.35));
-    }
-
-    @keyframes breathe {
-      0%   { transform: scale(0.58); opacity: 0.5; animation-timing-function: cubic-bezier(0.45,0,0.55,1); }
-      33%  { transform: scale(1);    opacity: 1;   animation-timing-function: linear; }
-      66%  { transform: scale(1);    opacity: 1;   animation-timing-function: cubic-bezier(0.45,0,0.55,1); }
-      100% { transform: scale(0.58); opacity: 0.5; }
+      /* No CSS animation — JS applies transitions per phase for exact sync */
     }
 
     .breath-overlay {
@@ -136,22 +152,23 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 10px;
     }
 
     .breath-phase {
       font-family: 'Raleway', sans-serif;
       font-weight: 200;
-      font-size: 9px;
+      font-size: 10px;
       letter-spacing: 0.45em;
       text-transform: uppercase;
       color: var(--amber-light);
     }
 
     .breath-count {
-      font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: 42px;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 30px;
+      letter-spacing: 0.08em;
       line-height: 1;
       color: var(--cream);
     }
@@ -674,11 +691,16 @@
 
     <!-- Breathing exercise -->
     <div class="breath-center">
-      <p class="breath-invite">Let's breathe while we wait</p>
-      <div class="breath-circle-wrap">
+      <!-- Phase 1 + 2: text intro -->
+      <div class="breath-intro" id="breath-intro">
+        <p class="breath-invite" id="breath-invite">Let's breathe while we wait</p>
+        <p class="breath-getready" id="breath-getready">Get ready &mdash; <span id="breath-ready-num"></span></p>
+      </div>
+      <!-- Phase 3+: circle -->
+      <div class="breath-circle-wrap" id="breath-circle-wrap">
         <svg class="breath-svg" viewBox="0 0 120 120">
           <circle class="breath-track" cx="60" cy="60" r="50"/>
-          <circle class="breath-ring"  cx="60" cy="60" r="50"/>
+          <circle class="breath-ring"  cx="60" cy="60" r="50" id="breath-ring"/>
         </svg>
         <div class="breath-overlay">
           <p class="breath-phase" id="breath-phase">Inhale</p>
@@ -855,22 +877,112 @@
     const audioEl         = document.getElementById('forest-audio');
     const toggleInfoBtn   = document.getElementById('toggle-info-btn');
 
-    // ── Breathing countdown ──
-    const BREATH_PHASES = ['Inhale', 'Hold', 'Exhale'];
+    // ── Breathing sequence (JS-driven for exact phase sync) ──
+    const BREATH_PHASES  = ['Inhale', 'Hold', 'Exhale'];
+    const breathIntroEl  = document.getElementById('breath-intro');
+    const breathInviteEl = document.getElementById('breath-invite');
+    const breathGREl     = document.getElementById('breath-getready');
+    const breathGRNumEl  = document.getElementById('breath-ready-num');
+    const breathCircleEl = document.getElementById('breath-circle-wrap');
+    const breathRingEl   = document.getElementById('breath-ring');
     const breathPhaseEl  = document.getElementById('breath-phase');
     const breathCountEl  = document.getElementById('breath-count');
-    let breathPhaseIdx   = 0;
-    let breathCountNum   = 4;
-    let breathTimer      = null;
+
+    let breathPhaseIdx = 0;
+    let breathCountNum = 4;
+    let breathTimer    = null;
+    let breathStopped  = false;
+
+    // Apply a JS-driven CSS transition to the ring for each phase.
+    // This is the ONLY place the ring moves — guaranteeing it's always in sync with the text.
+    function setRingPhase(phase) {
+      if (!breathRingEl) return;
+      if (phase === 'inhale') {
+        breathRingEl.style.transition = 'transform 4s cubic-bezier(0.45,0,0.55,1), opacity 4s ease';
+        breathRingEl.style.transform  = 'scale(1)';
+        breathRingEl.style.opacity    = '1';
+      } else if (phase === 'hold') {
+        breathRingEl.style.transition = 'none'; // stays at scale(1), no movement
+      } else {
+        breathRingEl.style.transition = 'transform 4s cubic-bezier(0.45,0,0.55,1), opacity 4s ease';
+        breathRingEl.style.transform  = 'scale(0.58)';
+        breathRingEl.style.opacity    = '0.5';
+      }
+    }
 
     function tickBreathing() {
+      if (breathStopped) return;
       breathCountNum--;
       if (breathCountNum <= 0) {
         breathPhaseIdx = (breathPhaseIdx + 1) % 3;
         breathCountNum = 4;
-        if (breathPhaseEl) breathPhaseEl.textContent = BREATH_PHASES[breathPhaseIdx];
+        const label = BREATH_PHASES[breathPhaseIdx];
+        if (breathPhaseEl) breathPhaseEl.textContent = label;
+        if (breathCountEl) breathCountEl.textContent  = '4';
+        setRingPhase(label.toLowerCase());
+      } else {
+        if (breathCountEl) breathCountEl.textContent = breathCountNum;
       }
-      if (breathCountEl) breathCountEl.textContent = breathCountNum;
+    }
+
+    function startBreathingLoader() {
+      if (!breathIntroEl) return; // not in DOM (mobile)
+
+      // 1. Fade in invite text
+      breathIntroEl.style.transition = 'opacity 0.9s ease';
+      breathIntroEl.style.opacity    = '0';
+      setTimeout(() => {
+        if (breathStopped) return;
+        breathIntroEl.style.opacity = '1';
+      }, 60);
+
+      // 2. After 1.4 s: reveal "Get ready — 3"
+      setTimeout(() => {
+        if (breathStopped) return;
+        if (breathGREl) {
+          breathGREl.style.transition = 'opacity 0.5s ease';
+          breathGREl.style.opacity    = '1';
+        }
+        let readyCount = 3;
+        if (breathGRNumEl) breathGRNumEl.textContent = readyCount;
+
+        const readyInterval = setInterval(() => {
+          if (breathStopped) { clearInterval(readyInterval); return; }
+          readyCount--;
+          if (readyCount <= 0) {
+            clearInterval(readyInterval);
+            // 3. Fade out intro, cross-fade to circle
+            if (breathIntroEl) {
+              breathIntroEl.style.transition = 'opacity 0.5s ease';
+              breathIntroEl.style.opacity    = '0';
+            }
+            setTimeout(() => {
+              if (breathStopped) return;
+              // Ensure ring is at compressed state before starting inhale
+              if (breathRingEl) {
+                breathRingEl.style.transition = 'none';
+                breathRingEl.style.transform  = 'scale(0.58)';
+                breathRingEl.style.opacity    = '0.5';
+              }
+              breathPhaseIdx = 0;
+              breathCountNum = 4;
+              if (breathPhaseEl) breathPhaseEl.textContent = 'Inhale';
+              if (breathCountEl) breathCountEl.textContent  = '4';
+              // Fade in circle
+              if (breathCircleEl) breathCircleEl.style.opacity = '1';
+              // Two rAFs to commit the no-transition reset before inhale transition starts
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (!breathStopped) {
+                  setRingPhase('inhale');
+                  breathTimer = setInterval(tickBreathing, 1000);
+                }
+              }));
+            }, 600);
+          } else {
+            if (breathGRNumEl) breathGRNumEl.textContent = readyCount;
+          }
+        }, 1000);
+      }, 1400);
     }
 
     // ── Loader dismiss ──
@@ -880,7 +992,8 @@
       if (loaderDismissed) return;
       loaderDismissed = true;
 
-      // Stop breathing timer
+      // Stop all breathing sequence steps
+      breathStopped = true;
       if (breathTimer) { clearInterval(breathTimer); breathTimer = null; }
 
       // Unpause hero animations — they stagger in after the loader fades
@@ -959,7 +1072,7 @@
       document.body.classList.add('mobile-view');
       initMobile();
     } else {
-      breathTimer = setInterval(tickBreathing, 1000);
+      startBreathingLoader();
       initDesktop();
     }
 
