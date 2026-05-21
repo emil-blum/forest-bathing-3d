@@ -1104,7 +1104,7 @@
       const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
       camera.position.copy(HOME_POS);
 
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
       renderer.setSize(innerWidth, innerHeight);
       renderer.setClearColor(0x0d1f15, 1);
@@ -1187,11 +1187,15 @@
         }
       }
 
+      let tabVisible = !document.hidden;
+      document.addEventListener('visibilitychange', () => { tabVisible = !document.hidden; });
+
       function animate() {
         requestAnimationFrame(animate);
+        if (!tabVisible) return;
         if (!inContent) controls.update();
         animateZoom();
-        renderer.render(scene, camera);
+        if (!inContent || zoomTarget) renderer.render(scene, camera);
       }
       animate();
 
