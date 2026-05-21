@@ -46,6 +46,7 @@
       width: 100% !important;
       height: 100% !important;
       display: block;
+      opacity: 0;
       transition:
         filter var(--transition-speed) ease,
         transform var(--transition-speed) ease;
@@ -471,6 +472,99 @@
     @keyframes rise {
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ── CANVAS REVEAL / COALESCING ── */
+    #splat-canvas.coalescing {
+      animation: splatCoalesce 3.5s ease forwards;
+    }
+
+    #splat-canvas.revealed {
+      opacity: 1;
+    }
+
+    @keyframes splatCoalesce {
+      0%   { opacity: 0;    filter: blur(28px) saturate(0.15) brightness(0.5); }
+      20%  { opacity: 0.35; filter: blur(18px) saturate(0.3)  brightness(0.65); }
+      55%  { opacity: 0.75; filter: blur(9px)  saturate(0.65) brightness(0.85); }
+      100% { opacity: 1;    filter: none; }
+    }
+
+    /* ── LOADER PROGRESS BAR ── */
+    .loader-progress {
+      margin-top: 28px;
+      width: 180px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .loader-progress.visible { opacity: 1; }
+
+    .loader-track {
+      height: 1px;
+      background: rgba(200,146,42,0.15);
+      position: relative;
+    }
+
+    .loader-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, var(--amber), var(--amber-light));
+      transition: width 0.25s ease;
+    }
+
+    .loader-percent {
+      margin-top: 10px;
+      font-family: 'Raleway', sans-serif;
+      font-weight: 200;
+      font-size: 10px;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: rgba(200,146,42,0.4);
+      text-align: center;
+    }
+
+    /* ── MOBILE VIEW ── */
+    body.mobile-view #splat-canvas { display: none; }
+
+    body.mobile-view {
+      background-image: url('./Assets/forest-mobile.avif');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    body.mobile-view .explore-hint { display: none; }
+
+    /* ── MOBILE PANEL NOTICE ── */
+    .mobile-notice {
+      display: none;
+      border-left: 2px solid rgba(200,146,42,0.35);
+      background: rgba(200,146,42,0.05);
+      padding: 14px 20px;
+      margin-bottom: 32px;
+    }
+
+    .mobile-notice p {
+      font-family: 'Raleway', sans-serif;
+      font-weight: 300;
+      font-size: 12px;
+      line-height: 1.75;
+      color: rgba(240,234,216,0.6);
+      letter-spacing: 0.04em;
+      margin: 0;
+      text-wrap: pretty;
+    }
+
+    body.mobile-view .mobile-notice { display: block; }
+
+    /* ── TEXT WRAP ── */
+    .intro-text,
+    .panel-body p,
+    .panel-body h3,
+    .benefit-item .b-text,
+    .panel-subtitle {
+      text-wrap: pretty;
+    }
   </style>
 </head>
 <body>
@@ -480,7 +574,13 @@
   <!-- Loading screen -->
   <div id="loader">
     <div class="loader-ring"></div>
-    <p class="loader-text">Entering the forest</p>
+    <p class="loader-text" id="loader-text">Entering the forest</p>
+    <div class="loader-progress" id="loader-progress">
+      <div class="loader-track">
+        <div class="loader-fill" id="loader-fill"></div>
+      </div>
+      <p class="loader-percent" id="loader-percent"></p>
+    </div>
   </div>
 
   <!-- Splat canvas -->
@@ -492,8 +592,8 @@
       <p class="eyebrow">森林浴 · Shinrin-yoku</p>
       <h1>Forest<br><em>Bathing</em></h1>
       <p class="intro-text">
-        Step into stillness. Ancient trees breathe wisdom into the air —
-        a practice that has healed millions, now yours to explore.
+        Step into stillness. Ancient trees breathe calming medicine into the air.
+        Enter to learn about the ancient practice that has healed millions.
       </p>
       <button class="cta-btn" id="learn-more-btn">Learn More</button>
     </div>
@@ -521,6 +621,9 @@
     <div class="panel-wrapper">
       <button class="panel-close" id="panel-close-btn" title="Close (Esc)">✕</button>
       <div class="content-panel">
+        <div class="mobile-notice">
+          <p>For the full immersive 3D forest experience, open this page on desktop.</p>
+        </div>
         <p class="panel-tag">The Practice</p>
         <h2 class="panel-title">The Art of Forest Bathing</h2>
         <p class="panel-subtitle">Shinrin-yoku — to bathe in the forest atmosphere</p>
@@ -610,157 +713,43 @@
     import { SparkRenderer, SplatMesh } from '@sparkjsdev/spark';
 
     const SPLAT_URL = "./forest-path.spz";
+    const HOME_POS  = new THREE.Vector3(0, 4.5, 5);
+    const IS_MOBILE = window.matchMedia('(max-width: 767px)').matches;
 
-    // Home camera position — tweak y to raise/lower the viewpoint
-    const HOME_POS = new THREE.Vector3(0, 4.5, 5);
+    // ── DOM refs ──
+    const loader          = document.getElementById('loader');
+    const loaderTextEl    = document.getElementById('loader-text');
+    const loaderFill      = document.getElementById('loader-fill');
+    const loaderPercent   = document.getElementById('loader-percent');
+    const loaderProgress  = document.getElementById('loader-progress');
+    const canvas          = document.getElementById('splat-canvas');
+    const heroEl          = document.getElementById('hero');
+    const heroInnerEl     = document.getElementById('hero-inner');
+    const contentEl       = document.getElementById('content');
+    const learnBtn        = document.getElementById('learn-more-btn');
+    const closeBtn        = document.getElementById('panel-close-btn');
+    const audioBtn        = document.getElementById('audio-btn');
+    const audioEl         = document.getElementById('forest-audio');
+    const toggleInfoBtn   = document.getElementById('toggle-info-btn');
 
-    const loader        = document.getElementById('loader');
-    const canvas        = document.getElementById('splat-canvas');
-    const heroEl        = document.getElementById('hero');
-    const heroInnerEl   = document.getElementById('hero-inner');
-    const contentEl     = document.getElementById('content');
-    const learnBtn      = document.getElementById('learn-more-btn');
-    const closeBtn      = document.getElementById('panel-close-btn');
-    const audioBtn      = document.getElementById('audio-btn');
-    const audioEl       = document.getElementById('forest-audio');
-    const toggleInfoBtn = document.getElementById('toggle-info-btn');
+    // ── Loader dismiss ──
+    let loaderDismissed = false;
 
-    // ── Three.js Setup ──
-    const scene  = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
-    camera.position.copy(HOME_POS);
-
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.setClearColor(0x0d1f15, 1);
-
-    // SparkRenderer — required for SplatMesh
-    const spark = new SparkRenderer({ renderer });
-    scene.add(spark);
-
-    // ── Orbit Controls ──
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping   = true;
-    controls.dampingFactor   = 0.06;
-    controls.autoRotate      = true;
-    controls.autoRotateSpeed = 0.18;
-    controls.enableZoom      = false;
-    controls.enablePan       = false;
-    controls.minPolarAngle   = Math.PI / 6;  // 30° — can look up at treetops
-    controls.maxPolarAngle   = Math.PI / 2;  // 90° — hard horizon, no underground
-    controls.rotateSpeed     = 0.4;
-
-    // ── Load Splat ──
-    function dismissLoader() {
+    function dismissLoader(doReveal) {
+      if (loaderDismissed) return;
+      loaderDismissed = true;
       loader.classList.add('fade-out');
-      setTimeout(() => loader.style.display = 'none', 1300);
-    }
-
-    const splatMesh = new SplatMesh({ url: SPLAT_URL });
-    scene.add(splatMesh);
-    splatMesh.addEventListener('load', dismissLoader);
-    splatMesh.addEventListener('error', (e) => { console.error(e); dismissLoader(); });
-    setTimeout(dismissLoader, 12000); // fallback for slow connections
-
-    // ── Resize ──
-    window.addEventListener('resize', () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-    });
-
-    // ── Transition State ──
-    let isTransitioning = false;
-    let inContent       = false;
-    let zoomTarget      = null;
-    let zoomingHome     = false;
-
-    function enterContent() {
-      if (isTransitioning || inContent) return;
-      isTransitioning = true;
-      inContent = true;
-      controls.autoRotate = false;
-
-      // Drift camera gently forward
-      zoomTarget = new THREE.Vector3(
-        camera.position.x * 0.5,
-        camera.position.y * 0.85,
-        camera.position.z * 0.6
-      );
-      zoomingHome = false;
-
-      canvas.classList.add('blurred');
-      heroEl.classList.add('hidden');
-      setTimeout(() => {
-        contentEl.classList.add('visible');
-        isTransitioning = false;
-      }, 900);
-    }
-
-    function exitContent() {
-      if (isTransitioning || !inContent) return;
-      isTransitioning = true;
-      inContent = false;
-
-      contentEl.classList.remove('visible');
-      canvas.classList.remove('blurred');
-
-      // Lerp camera back to home position
-      zoomTarget  = HOME_POS.clone();
-      zoomingHome = true;
-
-      setTimeout(() => {
-        heroEl.classList.remove('hidden');
-        controls.autoRotate = true;
-        isTransitioning = false;
-      }, 500);
-    }
-
-    learnBtn.addEventListener('click', enterContent);
-    closeBtn.addEventListener('click', exitContent);
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && inContent) exitContent();
-    });
-
-    // Cancel any in-progress camera reset the moment the user grabs the scene
-    controls.addEventListener('start', () => {
-      zoomTarget  = null;
-      zoomingHome = false;
-    });
-
-    // ── Hide / Show hero info ──
-    let infoVisible = true;
-    toggleInfoBtn.addEventListener('click', () => {
-      infoVisible = !infoVisible;
-      heroInnerEl.style.transition   = 'opacity 0.6s ease';
-      heroInnerEl.style.opacity      = infoVisible ? '1' : '0';
-      heroInnerEl.style.pointerEvents = infoVisible ? 'all' : 'none';
-      toggleInfoBtn.textContent      = infoVisible ? 'Hide Info' : 'Show Info';
-    });
-
-    // ── Camera Zoom Animation ──
-    function animateZoom() {
-      if (!zoomTarget) return;
-      camera.position.lerp(zoomTarget, 0.018);
-      // When returning home, snap and stop once close enough
-      if (zoomingHome && camera.position.distanceTo(zoomTarget) < 0.08) {
-        camera.position.copy(zoomTarget);
-        zoomTarget  = null;
-        zoomingHome = false;
+      setTimeout(() => { loader.style.display = 'none'; }, 1300);
+      if (doReveal) {
+        canvas.classList.add('coalescing');
+        canvas.addEventListener('animationend', () => {
+          canvas.classList.remove('coalescing');
+          canvas.classList.add('revealed');
+        }, { once: true });
       }
     }
 
-    // ── Render Loop ──
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!inContent) controls.update();
-      animateZoom();
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // ── Audio Controls ──
+    // ── Audio ──
     let audioStarted = false;
     let audioMuted   = false;
     audioEl.volume   = 0.5;
@@ -771,26 +760,222 @@
       audioEl.play().catch(() => {});
       updateAudioBtn();
     }
-
     function toggleAudio() {
       if (!audioStarted) { startAudio(); return; }
       audioMuted    = !audioMuted;
       audioEl.muted = audioMuted;
       updateAudioBtn();
     }
-
     function updateAudioBtn() {
-      const w1    = document.getElementById('wave1');
-      const w2    = document.getElementById('wave2');
       const muted = audioMuted || !audioStarted;
-      if (w1) w1.style.opacity = muted ? '0.2' : '1';
-      if (w2) w2.style.opacity = muted ? '0.2' : '1';
+      document.getElementById('wave1').style.opacity = muted ? '0.2' : '1';
+      document.getElementById('wave2').style.opacity = muted ? '0.2' : '1';
     }
 
     audioBtn.addEventListener('click', toggleAudio);
     document.addEventListener('pointerdown', () => {
       if (!audioStarted) startAudio();
     }, { once: true });
+
+    // ── Shared panel & info helpers ──
+    function setupPanel(onEnter, onExit) {
+      learnBtn.addEventListener('click', onEnter);
+      closeBtn.addEventListener('click', onExit);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') onExit(); });
+    }
+    function setupHideInfo() {
+      let visible = true;
+      toggleInfoBtn.addEventListener('click', () => {
+        visible = !visible;
+        heroInnerEl.style.transition    = 'opacity 0.6s ease';
+        heroInnerEl.style.opacity       = visible ? '1' : '0';
+        heroInnerEl.style.pointerEvents = visible ? 'all' : 'none';
+        toggleInfoBtn.textContent       = visible ? 'Hide Info' : 'Show Info';
+      });
+    }
+
+    // ── Route mobile / desktop ──
+    if (IS_MOBILE) {
+      document.body.classList.add('mobile-view');
+      initMobile();
+    } else {
+      initDesktop();
+    }
+
+    // ── Mobile init ──
+    function initMobile() {
+      dismissLoader(false);
+      let open = false;
+      setupPanel(
+        () => {
+          if (open) return;
+          open = true;
+          heroEl.classList.add('hidden');
+          setTimeout(() => contentEl.classList.add('visible'), 200);
+        },
+        () => {
+          if (!open) return;
+          open = false;
+          contentEl.classList.remove('visible');
+          setTimeout(() => heroEl.classList.remove('hidden'), 400);
+        }
+      );
+      setupHideInfo();
+    }
+
+    // ── Desktop init ──
+    async function initDesktop() {
+      const scene  = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 1000);
+      camera.position.copy(HOME_POS);
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setClearColor(0x0d1f15, 1);
+
+      const spark = new SparkRenderer({ renderer });
+      scene.add(spark);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping   = true;
+      controls.dampingFactor   = 0.06;
+      controls.autoRotate      = true;
+      controls.autoRotateSpeed = 0.18;
+      controls.enableZoom      = false;
+      controls.enablePan       = false;
+      controls.minPolarAngle   = Math.PI / 6;
+      controls.maxPolarAngle   = Math.PI / 2;
+      controls.rotateSpeed     = 0.4;
+
+      window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      // Transition state
+      let isTransitioning = false;
+      let inContent       = false;
+      let zoomTarget      = null;
+      let zoomingHome     = false;
+
+      function enterContent() {
+        if (isTransitioning || inContent) return;
+        isTransitioning = true;
+        inContent = true;
+        controls.autoRotate = false;
+        zoomTarget = new THREE.Vector3(
+          camera.position.x * 0.5,
+          camera.position.y * 0.85,
+          camera.position.z * 0.6
+        );
+        zoomingHome = false;
+        canvas.classList.add('blurred');
+        heroEl.classList.add('hidden');
+        setTimeout(() => {
+          contentEl.classList.add('visible');
+          isTransitioning = false;
+        }, 900);
+      }
+
+      function exitContent() {
+        if (isTransitioning || !inContent) return;
+        isTransitioning = true;
+        inContent = false;
+        contentEl.classList.remove('visible');
+        canvas.classList.remove('blurred');
+        zoomTarget  = HOME_POS.clone();
+        zoomingHome = true;
+        setTimeout(() => {
+          heroEl.classList.remove('hidden');
+          controls.autoRotate = true;
+          isTransitioning = false;
+        }, 500);
+      }
+
+      setupPanel(enterContent, exitContent);
+      setupHideInfo();
+
+      controls.addEventListener('start', () => {
+        zoomTarget  = null;
+        zoomingHome = false;
+      });
+
+      function animateZoom() {
+        if (!zoomTarget) return;
+        camera.position.lerp(zoomTarget, 0.018);
+        if (zoomingHome && camera.position.distanceTo(zoomTarget) < 0.08) {
+          camera.position.copy(zoomTarget);
+          zoomTarget  = null;
+          zoomingHome = false;
+        }
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!inContent) controls.update();
+        animateZoom();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Fetch splat with download progress, then load
+      let splatUrl = SPLAT_URL;
+      try {
+        splatUrl = await fetchWithProgress(SPLAT_URL);
+      } catch (e) {
+        console.warn('Progress fetch failed, falling back to direct URL:', e);
+      }
+
+      const splatMesh = new SplatMesh({ url: splatUrl });
+      scene.add(splatMesh);
+
+      const onLoad = () => dismissLoader(true);
+      splatMesh.addEventListener('load', onLoad);
+      splatMesh.addEventListener('error', e => { console.error(e); onLoad(); });
+      setTimeout(onLoad, 8000);
+    }
+
+    // ── Fetch with progress tracking ──
+    async function fetchWithProgress(url) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const total = parseInt(res.headers.get('Content-Length') || '0', 10);
+      loaderProgress.classList.add('visible');
+
+      if (!total) {
+        loaderFill.style.transition = 'width 20s linear';
+        requestAnimationFrame(() => { loaderFill.style.width = '85%'; });
+      }
+
+      const reader = res.body.getReader();
+      const chunks = [];
+      let loaded = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        if (total) {
+          const pct = Math.min(99, Math.round((loaded / total) * 100));
+          loaderFill.style.transition = 'width 0.25s ease';
+          loaderFill.style.width      = pct + '%';
+          loaderPercent.textContent   = pct + '%';
+        }
+      }
+
+      loaderFill.style.transition = 'width 0.3s ease';
+      loaderFill.style.width      = '100%';
+      loaderPercent.textContent   = '100%';
+      if (loaderTextEl) loaderTextEl.textContent = 'Preparing the forest…';
+      await new Promise(r => setTimeout(r, 500));
+
+      const blob = new Blob(chunks, { type: 'application/octet-stream' });
+      return URL.createObjectURL(blob);
+    }
 
   </script>
 </body>
