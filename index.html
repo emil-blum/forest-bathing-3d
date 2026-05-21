@@ -66,7 +66,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: var(--forest-deep);
+      background:
+        linear-gradient(rgba(13,31,21,0.88), rgba(13,31,21,0.88)),
+        url('./Assets/forest-mobile.avif') center/cover no-repeat;
       transition: opacity 1.2s ease;
     }
 
@@ -87,7 +89,7 @@
       font-size: 11px;
       letter-spacing: 0.35em;
       text-transform: uppercase;
-      color: rgba(200,146,42,0.6);
+      color: rgba(200,146,42,0.85);
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -237,11 +239,11 @@
     /* Shared label style */
     .bar-label {
       font-family: 'Raleway', sans-serif;
-      font-weight: 200;
-      font-size: 10px;
-      letter-spacing: 0.38em;
+      font-weight: 300;
+      font-size: 11px;
+      letter-spacing: 0.32em;
       text-transform: uppercase;
-      color: rgba(240,234,216,0.45);
+      color: rgba(240,234,216,0.72);
       background: transparent;
       border: none;
       cursor: pointer;
@@ -249,22 +251,26 @@
       transition: color 0.3s;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       white-space: nowrap;
     }
 
     .bar-label:hover { color: var(--amber-light); }
 
-    .explore-hint {
-      justify-self: start;
+    .bar-label svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      display: block;
     }
 
-    .explore-hint::before,
-    .explore-hint::after {
-      content: '✦';
-      font-size: 7px;
-      opacity: 0.7;
+    .explore-hint {
+      justify-self: start;
+      pointer-events: none;
+      cursor: default;
     }
+
+    .explore-hint:hover { color: rgba(240,234,216,0.72); }
 
     #toggle-info-btn {
       justify-self: center;
@@ -272,11 +278,6 @@
 
     #audio-btn {
       justify-self: end;
-    }
-
-    #audio-btn svg {
-      width: 16px; height: 16px;
-      flex-shrink: 0;
     }
 
     /* Mobile: stack into a column */
@@ -483,9 +484,9 @@
     }
 
     @keyframes splatCoalesce {
-      0%   { opacity: 0;    filter: blur(28px) saturate(0.15) brightness(0.5); }
-      20%  { opacity: 0.35; filter: blur(18px) saturate(0.3)  brightness(0.65); }
-      55%  { opacity: 0.75; filter: blur(9px)  saturate(0.65) brightness(0.85); }
+      0%   { opacity: 0;    filter: blur(28px) brightness(0.5); }
+      20%  { opacity: 0.35; filter: blur(18px) brightness(0.65); }
+      55%  { opacity: 0.75; filter: blur(9px)  brightness(0.9); }
       100% { opacity: 1;    filter: none; }
     }
 
@@ -512,6 +513,15 @@
       transition: width 0.25s ease;
     }
 
+    .loader-fill.pulsing {
+      animation: fillPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes fillPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
     .loader-percent {
       margin-top: 10px;
       font-family: 'Raleway', sans-serif;
@@ -519,7 +529,7 @@
       font-size: 10px;
       letter-spacing: 0.38em;
       text-transform: uppercase;
-      color: rgba(200,146,42,0.4);
+      color: rgba(200,146,42,0.65);
       text-align: center;
     }
 
@@ -533,7 +543,7 @@
       background-repeat: no-repeat;
     }
 
-    body.mobile-view .explore-hint { display: none; }
+    body.mobile-view #bottom-bar { display: none; }
 
     /* ── MOBILE PANEL NOTICE ── */
     .mobile-notice {
@@ -603,13 +613,20 @@
   <div id="bottom-bar">
     <div class="bar-rule"></div>
     <div class="bar-inner">
-      <span class="bar-label explore-hint">Drag to Explore</span>
+      <span class="bar-label explore-hint">Click and drag to pan around the forest</span>
       <button class="bar-label" id="toggle-info-btn">Hide Info</button>
       <button class="bar-label" id="audio-btn" title="Toggle forest sounds">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M9 9l-4 4h-3v2h3l4 4V9z"/>
-          <path d="M15.5 8.5a5 5 0 0 1 0 7" id="wave1"/>
-          <path d="M18 6a8 8 0 0 1 0 12" id="wave2"/>
+        <!-- Silence icon — shown by default (audio off) -->
+        <svg id="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <line x1="23" y1="9" x2="17" y2="15"/>
+          <line x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+        <!-- Playing icon — shown when audio is active -->
+        <svg id="icon-playing" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
         </svg>
         Forest Sounds
       </button>
@@ -738,15 +755,24 @@
     function dismissLoader(doReveal) {
       if (loaderDismissed) return;
       loaderDismissed = true;
-      loader.classList.add('fade-out');
-      setTimeout(() => { loader.style.display = 'none'; }, 1300);
-      if (doReveal) {
-        canvas.classList.add('coalescing');
-        canvas.addEventListener('animationend', () => {
-          canvas.classList.remove('coalescing');
-          canvas.classList.add('revealed');
-        }, { once: true });
-      }
+
+      // Complete the bar to 100% before fading, so the user never sees a stuck bar
+      loaderFill.classList.remove('pulsing');
+      loaderFill.style.transition = 'width 0.4s ease';
+      loaderFill.style.width = '100%';
+      if (loaderPercent) loaderPercent.textContent = '100%';
+
+      setTimeout(() => {
+        loader.classList.add('fade-out');
+        setTimeout(() => { loader.style.display = 'none'; }, 1300);
+        if (doReveal) {
+          canvas.classList.add('coalescing');
+          canvas.addEventListener('animationend', () => {
+            canvas.classList.remove('coalescing');
+            canvas.classList.add('revealed');
+          }, { once: true });
+        }
+      }, 350);
     }
 
     // ── Audio ──
@@ -768,14 +794,16 @@
     }
     function updateAudioBtn() {
       const muted = audioMuted || !audioStarted;
-      document.getElementById('wave1').style.opacity = muted ? '0.2' : '1';
-      document.getElementById('wave2').style.opacity = muted ? '0.2' : '1';
+      document.getElementById('icon-muted').style.display   = muted ? '' : 'none';
+      document.getElementById('icon-playing').style.display = muted ? 'none' : '';
     }
 
-    audioBtn.addEventListener('click', toggleAudio);
-    document.addEventListener('pointerdown', () => {
-      if (!audioStarted) startAudio();
-    }, { once: true });
+    if (!IS_MOBILE) {
+      audioBtn.addEventListener('click', toggleAudio);
+      document.addEventListener('pointerdown', () => {
+        if (!audioStarted) startAudio();
+      }, { once: true });
+    }
 
     // ── Shared panel & info helpers ──
     function setupPanel(onEnter, onExit) {
@@ -946,8 +974,9 @@
       loaderProgress.classList.add('visible');
 
       if (!total) {
-        loaderFill.style.transition = 'width 20s linear';
-        requestAnimationFrame(() => { loaderFill.style.width = '85%'; });
+        // No Content-Length: animate slowly to 80% while we wait
+        loaderFill.style.transition = 'width 25s linear';
+        requestAnimationFrame(() => { loaderFill.style.width = '80%'; });
       }
 
       const reader = res.body.getReader();
@@ -960,18 +989,20 @@
         chunks.push(value);
         loaded += value.length;
         if (total) {
-          const pct = Math.min(99, Math.round((loaded / total) * 100));
+          // Cap at 85% — the remaining 15% is completed by dismissLoader when SparkJS is ready
+          const pct = Math.min(85, Math.round((loaded / total) * 100));
           loaderFill.style.transition = 'width 0.25s ease';
           loaderFill.style.width      = pct + '%';
           loaderPercent.textContent   = pct + '%';
         }
       }
 
-      loaderFill.style.transition = 'width 0.3s ease';
-      loaderFill.style.width      = '100%';
-      loaderPercent.textContent   = '100%';
-      if (loaderTextEl) loaderTextEl.textContent = 'Preparing the forest…';
-      await new Promise(r => setTimeout(r, 500));
+      // Download done — hold at current position and signal decoding phase
+      loaderFill.style.transition = 'width 0.4s ease';
+      loaderFill.style.width = total ? '85%' : '82%';
+      loaderPercent.textContent = total ? '85%' : '';
+      loaderFill.classList.add('pulsing');
+      if (loaderTextEl) loaderTextEl.textContent = 'Decoding the forest…';
 
       const blob = new Blob(chunks, { type: 'application/octet-stream' });
       return URL.createObjectURL(blob);
